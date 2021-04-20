@@ -2,7 +2,8 @@
 #define stature(p) ((p)?(p)->height:-1)
 typedef enum { r, b } RBColor;
 
-template<typename T>struct BinNode{
+template<typename T>
+struct BinNode{
 	T data;
 	BinNode<T>* parent;
 	BinNode<T>* lc;
