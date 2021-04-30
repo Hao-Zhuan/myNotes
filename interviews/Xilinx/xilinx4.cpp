@@ -139,25 +139,25 @@ public:
   {
     sem_init(&sem_FB, 0, 0), sem_init(&sem_F, 0, 0), sem_init(&sem_B, 0, 0);
   }
-  void FizzBuzz(std::function<void()> FizzBuzz)
+  void FizzBuzz(std::function<void()> printFizzBuzz)
   {
     printFizzBuzz();
     sem_post(&sem_FB);
   }
 
-  void Fizz(std::function<void()> Fizz)
+  void Fizz(std::function<void()> printFizz)
   {
     sem_wait(&sem_FB);
     printFizz();
     sem_post(&sem_F);
   }
-  void Buzz(std::function<void()> Buzz)
+  void Buzz(std::function<void()> printBuzz)
   {
     sem_wait(&sem_F);
     printBuzz();
     sem_post(&sem_B);
   }
-  void Itself(std::function<void()> Itself)
+  void Itself(std::function<void()> printItself)
   {
     sem_wait(&sem_B);
     printItself();
