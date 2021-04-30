@@ -35,26 +35,26 @@ public:
     mtBuzz.lock();
     mtFizzBuzz.lock();
   }
-  void FizzBuzz(std::function<void()> FizzBuzz)
+  void FizzBuzz(std::function<void()> printFizzBuzz)
   {
     printFizzBuzz();
     mtFizzBuzz.unlock();
   }
-  void Fizz(std::function<void()> Fizz)
+  void Fizz(std::function<void()> printFizz)
   {
     mtFizzBuzz.lock();
     printFizz();
     mtFizzBuzz.unlock();
     mtFizz.unlock();
   }
-  void Buzz(std::function<void()> Buzz)
+  void Buzz(std::function<void()> printBuzz)
   {
     mtFizz.lock();
     printBuzz();
     mtFizz.unlock();
     mtBuzz.unlock();
   }
-  void Itself(std::function<void()> Itself)
+  void Itself(std::function<void()> printItself)
   {
     mtBuzz.lock();
     printItself();
@@ -69,24 +69,24 @@ class So2 : public FizzBuzz //So1+RAII机制
 
 public:
   So2() : lock_FB(mtFizzBuzz, std::try_to_lock), lock_F(mtFizz, std::try_to_lock), lock_B(mtBuzz, std::try_to_lock) {}
-  void FizzBuzz(std::function<void()> FizzBuzz)
+  void FizzBuzz(std::function<void()> printFizzBuzz)
   {
     printFizzBuzz();
     mtFizzBuzz.unlock();
   }
-  void Fizz(std::function<void()> Fizz)
+  void Fizz(std::function<void()> printFizz)
   {
     std::lock_guard<std::mutex> guard(mtFizzBuzz);
     printFizz();
     lock_F.unlock();
   }
-  void Buzz(std::function<void()> Buzz)
+  void Buzz(std::function<void()> printBuzz)
   {
     std::lock_guard<std::mutex> guard(mtFizz);
     printBuzz();
     lock_B.unlock();
   }
-  void Itself(std::function<void()> Itself)
+  void Itself(std::function<void()> printItself)
   {
     std::lock_guard<std::mutex> guard(mtBuzz);
     printItself();
@@ -100,14 +100,14 @@ class So3 : public FizzBuzz //条件变量
   int count = 0;
 
 public:
-  void FizzBuzz(std::function<void()> FizzBuzz)
+  void FizzBuzz(std::function<void()> printFizzBuzz)
   {
     printFizzBuzz();
     count = 1;
     cv.notify_all();
   }
 
-  void Fizz(std::function<void()> Fizz)
+  void Fizz(std::function<void()> printFizz)
   {
     std::unique_lock<std::mutex> lock(mt);
     cv.wait(lock, [this]() { return count == 1; });
@@ -115,14 +115,14 @@ public:
     count = 2;
     cv.notify_all();
   }
-  void Buzz(std::function<void()> Buzz)
+  void Buzz(std::function<void()> printBuzz)
   {
     std::unique_lock<std::mutex> lock(mt);
     cv.wait(lock, [this]() { return count == 2; });
     printBuzz();
     cv.notify_all();
   }
-  void Itself(std::function<void()> Itself)
+  void Itself(std::function<void()> printItself)
   {
     std::unique_lock<std::mutex> lock(mt);
     cv.wait(lock, [this]() { return count == 2; });
@@ -166,7 +166,7 @@ public:
 
 class So5 : public FizzBuzz//异步
 {
-  
+
 };
 //以下为FizzBuzz实现
 void FizzBuzz::printFizz()
