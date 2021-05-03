@@ -1,15 +1,23 @@
-//sem
-/* 1~n 
+//题目描述：采用多个线程随机调用4种打印函数，输出1~n的打印结果。
+/* 
+  1~n 
 	mod3==0输出fizz
 	mod5==0输出buzz
 	mod3==mod5==0输出fizzbuzz
-     信号量 */
+  否则输出自身
+*/
+//
+
+
 #include <iostream>
 #include <unistd.h>
+#include <chrono>
+#include <thread>
 #include <mutex>
 #include <functional>
 #include <condition_variable>
 #include <semaphore.h>
+#include <future>
 
 class FizzBuzz //优先级为FizzBuzz>Fizz>Buzz>Itself
 {
@@ -163,37 +171,142 @@ public:
     printItself();
   }
 };
-
-class So5 : public FizzBuzz//异步
+//c++11 std::future:用来获取异步操作结果的模板类
+//std::promise调用std::promise::set_value来通知future对象
+class So5 : public FizzBuzz
 {
+  std::promise<void> proFB, proF, proB;
 
+public:
+  void FizzBuzz(std::function<void()> printFizzBuzz)
+  {
+    printFizzBuzz();
+    proFB.set_value();
+  }
+
+  void Fizz(std::function<void()> printFizz)
+  {
+    proFB.get_future().wait();
+    printFizz();
+    proF.set_value();
+  }
+  void Buzz(std::function<void()> printBuzz)
+  {
+    proF.get_future().wait();
+    printBuzz();
+    proB.set_value();
+  }
+  void Itself(std::function<void()> printItself)
+  {
+    proB.get_future().wait();
+    printItself();
+  }
 };
+//c++11 std::future:用来获取异步操作结果的模板类
+//std::promise调用std::promise::set_value来通知future对象
+class So6 : public FizzBuzz
+{
+  std::function<void()> print = []() {};
+  std::packaged_task<void()> pt_FB{print}, pt_F{print}, pt_B{print};
+
+public:
+  void FizzBuzz(std::function<void()> printFizzBuzz)
+  {
+    printFizzBuzz();
+    pt_FB();
+  }
+
+  void Fizz(std::function<void()> printFizz)
+  {
+    pt_FB.get_future().wait();
+    printFizz();
+    pt_F();
+  }
+  void Buzz(std::function<void()> printBuzz)
+  {
+    pt_F.get_future().wait();
+    printBuzz();
+    pt_B();
+  }
+  void Itself(std::function<void()> printItself)
+  {
+    pt_B.get_future().wait();
+    printItself();
+  }
+};
+
+//原子操作：c++11中提供std::atomic<T>模板来构造原子对象
+//c++标准并未规定atomic实现是否无锁，可以用is_lock_free()来查询
+class So7 : public FizzBuzz
+{
+  std::atomic<bool> fb{false};
+  std::atomic<bool> f{false};
+  std::atomic<bool> b{false};
+
+public:
+  void FizzBuzz(std::function<void()> printFizzBuzz)
+  {
+    printFizzBuzz();
+    fb = true;
+  }
+
+  void Fizz(std::function<void()> printFizz)
+  {
+    while (!fb)
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    printFizz();
+    f = true;
+  }
+  void Buzz(std::function<void()> printBuzz)
+  {
+    while (!f)
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    printBuzz();
+    b = true;
+  }
+  void Itself(std::function<void()> printItself)
+  {
+    while (!b)
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    printItself();
+  }
+};
+
 //以下为FizzBuzz实现
 void FizzBuzz::printFizz()
 {
   if (this->val % 3 == 0)
+  {
     std::cout << "Fizz"
               << " ";
-  this->val++;
+    this->val++;
+  }
 }
 void FizzBuzz::printBuzz()
 {
   if (this->val % 5 == 0)
+  {
     std::cout << "Buzz"
               << " ";
-  this->val++;
+    this->val++;
+  }
 }
 
 void FizzBuzz::printFizzBuzz()
 {
   if (this->val % 15 == 0)
+  {
     std::cout << "FizzBuzz"
               << " ";
-  this->val++;
+    this->val++;
+  }
 }
 void FizzBuzz::printItself()
 {
-  std::cout << this->val
-            << " ";
-  this->val++;
+  if (this->val % 3 != 0 && this->val % 5 != 0)
+  {
+    std::cout << this->val
+              << " ";
+    this->val++;
+  }
 }
