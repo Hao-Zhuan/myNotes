@@ -1,37 +1,27 @@
-//题目描述：采用多个线程随机调用4种打印函数，输出1~n的打印结果。
-/* 
-  1~n 
-	mod3==0输出fizz
-	mod5==0输出buzz
-	mod3==mod5==0输出fizzbuzz
-  否则输出自身
-*/
-//
-
-
+//本文档列出了对于按序要求访问的其余做法
 #include <iostream>
 #include <unistd.h>
-#include <chrono>
-#include <thread>
 #include <mutex>
 #include <functional>
 #include <condition_variable>
 #include <semaphore.h>
 #include <future>
-
-class FizzBuzz //优先级为FizzBuzz>Fizz>Buzz>Itself
+#include <chrono>
+class myFizzBuzz
 {
-private:
-  int val;
-
 public:
-  void printFizz();
-  void printBuzz();
-  void printFizzBuzz();
-  void printItself();
+  int n;
+  int count;
+  myFizzBuzz(int n) : n(n) {}
+  myFizzBuzz() = default;
+  ~myFizzBuzz() = default;
+  std::function<void()> printFizz = []() { std::cout << "fizz "; };
+  std::function<void()> printBuzz = []() { std::cout << "buzz "; };
+  std::function<void()> printFizzBuzz = []() { std::cout << "fizzbuzz "; };
+  std::function<void(int)> printItself = [](int val) { std::cout << val << " "; };
 };
 
-class So1 : public FizzBuzz //面试时写的思路,本方法能用，但不同线程调用了不属于自己的锁，故本行为很危险
+class So1 : public myFizzBuzz //面试时写的思路,本方法能用，但不同线程调用了不属于自己的锁，故本行为很危险
 {
 private:
   std::mutex mtFizz, mtBuzz, mtFizzBuzz;
@@ -70,7 +60,7 @@ public:
   }
 };
 
-class So2 : public FizzBuzz //So1+RAII机制
+class So2 : public myFizzBuzz //So1+RAII机制
 {
   std::mutex mtFizzBuzz, mtFizz, mtBuzz;
   std::unique_lock<std::mutex> lock_FB, lock_F, lock_B;
@@ -101,7 +91,7 @@ public:
   }
 };
 
-class So3 : public FizzBuzz //条件变量
+class So3 : public myFizzBuzz //条件变量
 {
   std::condition_variable cv;
   std::mutex mt;
@@ -138,7 +128,7 @@ public:
   }
 };
 
-class So4 : public FizzBuzz //信号量
+class So4 : public myFizzBuzz //信号量
 {
   sem_t sem_FB, sem_F, sem_B;
 
@@ -147,33 +137,34 @@ public:
   {
     sem_init(&sem_FB, 0, 0), sem_init(&sem_F, 0, 0), sem_init(&sem_B, 0, 0);
   }
-  void FizzBuzz(std::function<void()> printFizzBuzz)
+  void FizzBuzz(std::function<void()> FizzBuzz)
   {
     printFizzBuzz();
     sem_post(&sem_FB);
   }
 
-  void Fizz(std::function<void()> printFizz)
+  void Fizz(std::function<void()> Fizz)
   {
     sem_wait(&sem_FB);
     printFizz();
     sem_post(&sem_F);
   }
-  void Buzz(std::function<void()> printBuzz)
+  void Buzz(std::function<void()> Buzz)
   {
     sem_wait(&sem_F);
     printBuzz();
     sem_post(&sem_B);
   }
-  void Itself(std::function<void()> printItself)
+  void Itself(std::function<void()> Itself)
   {
     sem_wait(&sem_B);
-    printItself();
+    printItself(count);
   }
 };
+
 //c++11 std::future:用来获取异步操作结果的模板类
 //std::promise调用std::promise::set_value来通知future对象
-class So5 : public FizzBuzz
+class So5 : public myFizzBuzz
 {
   std::promise<void> proFB, proF, proB;
 
@@ -204,7 +195,7 @@ public:
 };
 //c++11 std::future:用来获取异步操作结果的模板类
 //std::promise调用std::promise::set_value来通知future对象
-class So6 : public FizzBuzz
+class So6 : public myFizzBuzz
 {
   std::function<void()> print = []() {};
   std::packaged_task<void()> pt_FB{print}, pt_F{print}, pt_B{print};
@@ -237,7 +228,7 @@ public:
 
 //原子操作：c++11中提供std::atomic<T>模板来构造原子对象
 //c++标准并未规定atomic实现是否无锁，可以用is_lock_free()来查询
-class So7 : public FizzBuzz
+class So7 : public myFizzBuzz
 {
   std::atomic<bool> fb{false};
   std::atomic<bool> f{false};
@@ -271,42 +262,3 @@ public:
     printItself();
   }
 };
-
-//以下为FizzBuzz实现
-void FizzBuzz::printFizz()
-{
-  if (this->val % 3 == 0)
-  {
-    std::cout << "Fizz"
-              << " ";
-    this->val++;
-  }
-}
-void FizzBuzz::printBuzz()
-{
-  if (this->val % 5 == 0)
-  {
-    std::cout << "Buzz"
-              << " ";
-    this->val++;
-  }
-}
-
-void FizzBuzz::printFizzBuzz()
-{
-  if (this->val % 15 == 0)
-  {
-    std::cout << "FizzBuzz"
-              << " ";
-    this->val++;
-  }
-}
-void FizzBuzz::printItself()
-{
-  if (this->val % 3 != 0 && this->val % 5 != 0)
-  {
-    std::cout << this->val
-              << " ";
-    this->val++;
-  }
-}
