@@ -9,7 +9,7 @@ int main()
 
   if ((fp = fopen(".\\xilinx3_test.bin", "w+b")) == NULL)
   {
-    printf("open fail\n");
+    std::cout<<"open fail\n";
     return 0;
   }
 //先写一个值
@@ -18,7 +18,7 @@ int main()
   fseek(fp, 0, SEEK_SET);
 //读入数据
   fread(&f2, sizeof(float), 1, fp);
-  printf("f2 = %f\n", f2);
+  std::cout<<"f2 = "<<f2;
   fclose(fp);
   return 0;
 }
