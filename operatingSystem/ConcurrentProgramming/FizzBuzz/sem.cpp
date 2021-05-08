@@ -1,24 +1,6 @@
 //信号量的做法
-#include <iostream>
+#include "fizzbuzz.hpp"
 #include <semaphore.h>
-#include <functional>
-#include <thread>
-#define testNum (15)
-
-class myFizzBuzz
-{
-public:
-  int n;
-  int count;
-  myFizzBuzz(int n) : n(n) {}
-  myFizzBuzz() = default;
-  ~myFizzBuzz() = default;
-  std::function<void()> printFizz = []() { std::cout << "fizz "; };
-  std::function<void()> printBuzz = []() { std::cout << "buzz "; };
-  std::function<void()> printFizzBuzz = []() { std::cout << "fizzbuzz "; };
-  std::function<void(int)> printItself = [](int val) { std::cout << val << " "; };
-};
-//信号量的做法
 class Sem : public myFizzBuzz
 {
 private:
@@ -109,15 +91,17 @@ public:
 class myTest : public Sem
 {
 public:
-  Sem *fizzbuzz;
+  std::function<void()> printFizz = []() { std::cout << "fizz "; };
+  std::function<void()> printBuzz = []() { std::cout << "buzz "; };
+  std::function<void()> printFizzBuzz = []() { std::cout << "fizzbuzz "; };
+  std::function<void(int)> printItself = [](int val) { std::cout << val << " "; };
   std::thread th[4];
   myTest(int val) : Sem(val)
   {
-    fizzbuzz = (new Sem(val));
-    th[0] = std::thread(&Sem::Fizz, fizzbuzz, printFizz);
-    th[1] = std::thread(&Sem::Buzz, fizzbuzz, printBuzz);
-    th[2] = std::thread(&Sem::FizzBuzz, fizzbuzz, printFizzBuzz);
-    th[3] = std::thread(&Sem::Itself, fizzbuzz, printItself);
+    th[0] = std::thread(&Sem::Fizz, this, printFizz);
+    th[1] = std::thread(&Sem::Buzz, this, printBuzz);
+    th[2] = std::thread(&Sem::FizzBuzz, this, printFizzBuzz);
+    th[3] = std::thread(&Sem::Itself, this, printItself);
   }
   ~myTest() = default;
 
