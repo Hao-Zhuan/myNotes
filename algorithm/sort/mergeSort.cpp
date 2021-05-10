@@ -1,4 +1,7 @@
-//sort--bubbleSort
+//sort--mergeSort
+//时间复杂度O(NlogN) 
+//最好最坏复杂度均为O(NlogN)
+//稳定排序
 #include <iostream>
 #include <vector>
 
